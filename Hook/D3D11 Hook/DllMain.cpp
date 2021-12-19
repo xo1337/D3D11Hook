@@ -193,15 +193,6 @@ void OnDraw()
 		{
 			static const auto whiteColor = ImColor( 255, 255, 255 );
 			static const auto mainColor = ImColor( 255, 0, 0 );
-
-			draw->AddLine( center, ImVec2( center.x + 4, center.y + 4 ), whiteColor, 0.7f );
-			draw->AddLine( center, ImVec2( center.x + 4, center.y - 4 ), whiteColor, 0.7f );
-			draw->AddLine( center, ImVec2( center.x - 4, center.y - 4 ), whiteColor, 0.7f );
-			draw->AddLine( center, ImVec2( center.x - 4, center.y + 4 ), whiteColor, 0.7f );
-			draw->AddLine( ImVec2( center.x + 4, center.y + 4 ), ImVec2( center.x + 4 + 4, center.y + 4 + 4 ), mainColor, 0.7f );
-			draw->AddLine( ImVec2( center.x + 4, center.y - 4 ), ImVec2( center.x + 4 + 4, center.y - 4 - 4 ), mainColor, 0.7f );
-			draw->AddLine( ImVec2( center.x - 4, center.y - 4 ), ImVec2( center.x - 4 - 4, center.y - 4 - 4 ), mainColor, 0.7f );
-			draw->AddLine( ImVec2( center.x - 4, center.y + 4 ), ImVec2( center.x - 4 - 4, center.y + 4 + 4 ), mainColor, 0.7f );
 		}
 
 		if ( Globals::Visuals::Enabled )
