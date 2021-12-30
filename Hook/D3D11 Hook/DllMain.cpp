@@ -12,7 +12,7 @@ void InitImGui()
 	io.IniFilename = nullptr;
 	io.LogFilename = nullptr;
 
-	style.WindowMinSize = ImVec2( 128, 128 );
+	style.WindowMinSize = ImVec2( 256, 300 );
 	style.WindowTitleAlign = ImVec2( 0.5, 0.5 );
 	style.FrameBorderSize = 1;
 	style.ChildBorderSize = 1;
@@ -42,64 +42,56 @@ void InitImGui()
 	ImGui_ImplDX11_Init(pDevice, pContext);
 }
 
-__forceinline LRESULT __stdcall WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
-{
+LRESULT __stdcall WndProc( const HWND hWnd , UINT uMsg , WPARAM wParam , LPARAM lParam ) {
+
 	if ( uMsg == WM_KEYUP && wParam == VK_HOME )
 		Globals::Open ^= 1;
 
 	if ( Globals::Open )
 	{
-		ImGui_ImplWin32_WndProcHandler( hWnd, uMsg, wParam, lParam );
+		ImGui_ImplWin32_WndProcHandler( hWnd , uMsg , wParam , lParam );
 		return true;
-	}
+	}	
 
-	return CallWindowProcA(oWndProc, hWnd, uMsg, wParam, lParam);
+	return CallWindowProc( oWndProc , hWnd , uMsg , wParam , lParam );
 }
 
-__forceinline HRESULT __stdcall hkPresent(IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags)
+HRESULT __stdcall hkPresent( IDXGISwapChain* pSwapChain , UINT SyncInterval , UINT Flags )
 {
-	static bool SetupHook = false;
-
-	if (!SetupHook)
+	static bool Init = false;
+	if ( !Init )
 	{
-		if (SUCCEEDED(pSwapChain->GetDevice(__uuidof(ID3D11Device), (void**)& pDevice)))
+		if ( SUCCEEDED( pSwapChain->GetDevice( __uuidof( ID3D11Device ) , (void**)&pDevice ) ) )
 		{
-			pDevice->GetImmediateContext(&pContext);
+			pDevice->GetImmediateContext( &pContext );
 			DXGI_SWAP_CHAIN_DESC sd;
-			pSwapChain->GetDesc(&sd);
-
+			pSwapChain->GetDesc( &sd );
 			window = sd.OutputWindow;
 			ID3D11Texture2D* pBackBuffer;
-
-			pSwapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), (LPVOID*)& pBackBuffer);
-			pDevice->CreateRenderTargetView(pBackBuffer, NULL, &mainRenderTargetView);
-			pBackBuffer->Release();
-
-			oWndProc = (WNDPROC)SetWindowLongA(window, GWLP_WNDPROC, (LONG_PTR)WndProc);
-			InitImGui();
-		
-			SetupHook = true;
+			pSwapChain->GetBuffer( 0 , __uuidof( ID3D11Texture2D ) , (LPVOID*)&pBackBuffer );
+			pDevice->CreateRenderTargetView( pBackBuffer , NULL , &mainRenderTargetView );
+			pBackBuffer->Release( );
+			oWndProc = (WNDPROC)SetWindowLongPtr( window , GWLP_WNDPROC , (LONG_PTR)WndProc );
+			InitImGui( );
+			Init = true;
 		}
 
 		else
-			return oPresent(pSwapChain, SyncInterval, Flags);
+			return oPresent( pSwapChain , SyncInterval , Flags );
 	}
 
-	ImGui_ImplDX11_NewFrame();
-	ImGui_ImplWin32_NewFrame();
-	ImGui::NewFrame();
+	ImGui_ImplDX11_NewFrame( );
+	ImGui_ImplWin32_NewFrame( );
+	ImGui::NewFrame( );
 
 	ImGui::GetIO( ).MouseDrawCursor = Globals::Open;
-	if ( Globals::Open )
-	{
-		OnDraw( );
-	}
+	OnDraw( );
+	
+	ImGui::Render( );
 
-	ImGui::Render();
-
-	pContext->OMSetRenderTargets(1, &mainRenderTargetView, NULL);
-	ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
-	return oPresent(pSwapChain, SyncInterval, Flags);
+	pContext->OMSetRenderTargets( 1 , &mainRenderTargetView , NULL );
+	ImGui_ImplDX11_RenderDrawData( ImGui::GetDrawData( ) );
+	return oPresent( pSwapChain , SyncInterval , Flags );
 }
 
 void OnDraw()
@@ -122,61 +114,70 @@ void OnDraw()
 		ImGui::Spacing( );
 	};
 
-	ImGui::Begin( _("D3D11 Hook"), 0, ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize );
-	{
-		if ( ImGui::Button( _( "Aimbot" ), ImVec2( ImGui::GetContentRegionAvail( ).x / 4, 29 ) ) )
-			Globals::Tab = 0;
-
-		ImGui::SameLine( );
-
-		if ( ImGui::Button( _( "Visuals" ), ImVec2( ImGui::GetContentRegionAvail( ).x / 3, 29 ) ) )
-			Globals::Tab = 1;
-
-		ImGui::SameLine( );
-
-		if ( ImGui::Button( _( "Other" ), ImVec2( ImGui::GetContentRegionAvail( ).x / 2, 29 ) ) )
-			Globals::Tab = 2;
-		
-		ImGui::SameLine( );
-
-		if ( ImGui::Button( _( "Settings" ), ImVec2( ImGui::GetContentRegionAvail( ).x / 1, 29 ) ) )
-			Globals::Tab = 3;
-
-		ImGui::Spacing( );
-		ImGui::Separator( );
-
-		switch ( Globals::Tab )
+	if ( Globals::Open ) {
+		ImGui::Begin( _( "D3D11 Hook" ) , 0 , ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoResize );
 		{
-		case 0: // Aimbot
-			Checkbox( _( "Aimbot Enabled"), &Globals::Aimbot::Enabled );
-			Checkbox( _( "Draw FOV"), &Globals::Aimbot::DrawFOV );
-			Checkbox( _( "Draw Filled FOV"), &Globals::Aimbot::DrawFilledFOV );
-			Checkbox( _( "Draw Crosshair"), &Globals::Aimbot::DrawCrosshair );
-			Slider( _( "FOV Size"), &Globals::Aimbot::DrawFOVSize, 0, 650 );
-			break;
+			if ( ImGui::Button( _( "Aimbot" ) , ImVec2( ImGui::GetContentRegionAvail( ).x / 4 , 29 ) ) )
+				Globals::Tab = 0;
 
-		case 1: // Visuals
-			Checkbox( _( "ESP Enabled"), &Globals::Visuals::Enabled );
-			Checkbox( _( "Boxes"), &Globals::Visuals::Boxes );
-			Checkbox( _( "Filled Boxes"), &Globals::Visuals::FilledBoxes );
-			Checkbox( _( "Snaplines"), &Globals::Visuals::Snaplines );
-			Checkbox( _( "Display Info"), &Globals::Visuals::DisplayInfo );
-			Checkbox( _("Display Health"), &Globals::Visuals::DisplayHealth );
-			Checkbox( _( "Display Names" ), &Globals::Visuals::DisplayNames );
-			break;
+			ImGui::SameLine( );
 
-		case 2: // Other
-			break;
+			if ( ImGui::Button( _( "Visuals" ) , ImVec2( ImGui::GetContentRegionAvail( ).x / 3 , 29 ) ) )
+				Globals::Tab = 1;
 
-		case 3: // Settings
-			if ( ImGui::Button( _( "Unhook" ) ) )
-				Globals::IsClosing = true;
-			break;
-		}	
+			ImGui::SameLine( );
+
+			if ( ImGui::Button( _( "Other" ) , ImVec2( ImGui::GetContentRegionAvail( ).x / 2 , 29 ) ) )
+				Globals::Tab = 2;
+
+			ImGui::SameLine( );
+
+			if ( ImGui::Button( _( "Settings" ) , ImVec2( ImGui::GetContentRegionAvail( ).x / 1 , 29 ) ) )
+				Globals::Tab = 3;
+
+			ImGui::Spacing( );
+			ImGui::Separator( );
+
+			switch ( Globals::Tab )
+			{
+			case 0: // Aimbot
+				Checkbox( _( "Aimbot Enabled" ) , &Globals::Aimbot::Enabled );
+				Checkbox( _( "Draw FOV" ) , &Globals::Aimbot::DrawFOV );
+				Checkbox( _( "Draw Filled FOV" ) , &Globals::Aimbot::DrawFilledFOV );
+				Checkbox( _( "Draw Crosshair" ) , &Globals::Aimbot::DrawCrosshair );
+				Slider( _( "FOV Size" ) , &Globals::Aimbot::DrawFOVSize , 0 , 650 );
+				break;
+
+			case 1: // Visuals
+				Checkbox( _( "ESP Enabled" ) , &Globals::Visuals::Enabled );
+				Checkbox( _( "Boxes" ) , &Globals::Visuals::Boxes );
+				Checkbox( _( "Filled Boxes" ) , &Globals::Visuals::FilledBoxes );
+				Checkbox( _( "Snaplines" ) , &Globals::Visuals::Snaplines );
+				Checkbox( _( "Display Info" ) , &Globals::Visuals::DisplayInfo );
+				Checkbox( _( "Display Health" ) , &Globals::Visuals::DisplayHealth );
+				Checkbox( _( "Display Names" ) , &Globals::Visuals::DisplayNames );
+				break;
+
+			case 2: // Other
+				break;
+
+			case 3: // Settings
+				if ( ImGui::Button( _( "Unhook" ) ) )
+					Globals::IsClosing = true;
+				break;
+			}
+		}
+		ImGui::End( );
 	}
-	ImGui::End( );
-
 	// Cheat loop here lol
+
+	static bool Once = true;
+
+	if ( Once ) {
+
+		// Do your initialize stuff here..
+		Once = false;
+	}
 
 	{
 		const auto draw = ImGui::GetBackgroundDrawList( );
@@ -274,7 +275,7 @@ int __stdcall DllMain(HMODULE hModule, DWORD dwReason, void* )
 	Globals::DllInstance = hModule;
 
 	if ( dwReason == DLL_PROCESS_ATTACH )
-		CreateThread( 0, 0, reinterpret_cast< PTHREAD_START_ROUTINE >( MainThread ), 0, 0, 0 );
+		CloseHandle( CreateThread( 0 , 0 , reinterpret_cast<PTHREAD_START_ROUTINE>( MainThread ) , 0 , 0 , 0 ) );
 
 	return TRUE;
 }
